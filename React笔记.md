@@ -57,7 +57,7 @@
 ### JSX嵌入表达式
 * **JSX内容部分可以书写JS表达式，JS表达式用{}包起来即可，总之{}代表里面可以书写JS代码** ，
   1. 其中null、undefined、false在JSX表达式中不显示；
-  2. **普通对象不可以作为子元素，即不可写在JSX表达式的内容部分**，会报错；**普通对象可以放在React元素属性部分，如style属性**
+  2. **普通对象不可以作为子元素，即不可写在JSX表达式的内容部分**，会报错；
    ```javascript
     //普通对象放在元素内容部分这样写会报错
     let con=(
@@ -71,8 +71,8 @@
    ```
   3. 可以放置React元素对象
   4. **可以放置数组，会将数组每一项作为子元素，如果每一项是React元素需要加key值，但是数组中不可有普通对象，可以有React对象**
-* JSX表达式中使用注释 {/* */}
-* JSX元素属性也可使用JS表达式，属性名称使用**小驼峰**命名法
+* JSX表达式内容部分使用注释 {/* */}
+* JSX元素属性也可使用JS表达式，属性名称使用**小驼峰**命名法,**普通对象可以放在React元素属性部分，如style属性**
     ```javascript
         let url='http://路径';
         let cls='active';
@@ -170,3 +170,237 @@
 4. 组件内部无法改变传进来的属性,**数据属于谁，谁才有权利改动**
    
 **总结：React元素如：```<span></span> ```本质上就是一个组件（内置组件），因为console.log（React元素）和函数组件/类组件都是一样的，只有type类型不同**
+
+## 组件状态
+什么是组件状态？**组件状态是组件可以自行维护的数据**，有时候简称状态
+* 组件状态只在类组件中有效
+* 状态（state）：本质上是类的一个属性,一个对象
+* 必须初始化状态，有两种方式
+  1. 构造函数中
+   ```javascript
+  这是利用组件状态写的倒计时的类组件，外部只需传递一个倒计时多少秒的组件属性number
+   import React, { Component } from 'react';
+
+    class Tick extends Component {
+        constructor(props){
+            super(props)
+            // 初始化状态
+            this.state={
+                time:this.props.number
+            }
+          this.timer=  setInterval(() => {
+                if(this.state.time<=0){
+                    clearInterval(this.timer);
+                    return
+                }
+                this.setState({
+                    time:this.state.time-1
+                })
+            }, 1000);
+        }
+        
+        render() {
+            return (
+                <div>
+                    剩余时间：{this.state.time}
+                </div>
+            );
+        }
+    }
+
+    export default Tick;
+
+   ```
+  2. 在类中书写
+  ```javascript
+  这是利用组件状态写的倒计时的类组件，外部只需传递一个倒计时多少秒的组件属性number
+   import React, { Component } from 'react';
+
+    class Tick extends Component {
+       // 初始化状态，这段代码在super调用后运行
+          state={
+            time:this.props.number
+          }
+        constructor(props){
+            super(props)
+          this.timer=  setInterval(() => {
+                if(this.state.time<=0){
+                    clearInterval(this.timer);
+                    return
+                }
+                this.setState({
+                    time:this.state.time-1
+                })
+            }, 1000);
+        }
+        
+        render() {
+            return (
+                <div>
+                    剩余时间：{this.state.time}
+                </div>
+            );
+        }
+    }
+
+    export default Tick;
+
+   ```
+* **状态的变化：**
+  - 不能直接改变状态，因为React无法监控到状态发生了变化，必须使用this.setState({})改变状态,this.setState()会重新设置state状态，并且自动重新渲染,运行render函数
+
+## 深入理解setState
+setState对状态的改变**可能**是异步的，也可能是同步的
+**state状态一改变马上执行render函数**
+  * 如果setState({})在某个HTML元素的事件中，则其是异步改变状态，否则为同步改变状态
+  * **我们学习的时候始终把setState当成异步的**
+  * 如果在改变完状态后立即做某些事则将代码写在setState的第二个参数上，**第二个参数是个回调函数，该函数运行在render函数之后**
+  ```javascript
+  setState({
+    num:this.state.num+1
+  },()=>{
+    //在这个回调里面立即做些事情
+  })
+
+  ```
+  * setState还可以把第一个参数写成函数，**如果遇到某个事件中，需要同步调用多次，则用函数的方式得到最最新状态**
+  ```javascript
+  第一次改变状态
+  setState((cur)=>{
+    //参数cur表示当前的状态
+    //该函数的返回结果会覆盖掉之前的状态
+    //该函数是异步执行
+    return {
+      num:cur.num+1
+    }
+  },()=>{
+    //在所有状态都改变后，只执行一次render函数执行后才调用
+  })
+
+  第二次改变状态
+  setState((cur)=>{
+    //这个函数会在第一个setState的第一个参数执行后再执行，以保证当前状态的可靠性
+    return {
+      num:cur.num+1
+    }
+  })
+  ```
+  ### 最佳实践
+  1. 把所有的setState当做是异步的
+  2. 永远不要信任setState调用之后的状态，因为setState()代码是同步执行但是状态改变可能是异步的
+  3. 如果要使用改变之后的状态，需要使用回调函数（setState的第二个参数）
+  4. **如果新的状态要根据之前的状态进行运算，使用函数的方式改变状态（setState的第一个参数-回调函数）**
+  5. **React会对异步的setState进行优化，将多次setState进行合并，即将多次状态改变完成后，再统一对state进行改变，然后只触发一次render函数**
+## 组件中的数据  总结
+1. props：该数据是由组件的使用者传递的数据，所有权（改动权）不属于组件本身，也不一定属于父组件，因为父组件的数据也可能由其他组件传递的呢！因此该组件无法改变改数据
+2. state：该数据是由组件自身创建的，所有权（改动权）属于组件自身，因此该组件有权利改动该数据
+
+## 事件
+**在React中，事件本质上就是一个属性**
+按照React对组件的约定，**由于事件本质是一个属性，因此事件也需要使用小驼峰命名法**
+
+- **如果没有特殊处理，在事件处理函数中，this指向undefined**
+   - 解决方法1：使用bind函数绑定this
+   - 解决方法2：使用箭头函数（使用较多）
+## 生命周期
+**生命周期只存在于类组件中，函数组件每次调用都会重新运行函数，旧的组件即刻被销毁**
+
+* 旧版生命周期：React < 16.0.0
+  
+    1是初始化阶段  2-4是挂载阶段 
+1. **constructor**
+   1. 同一个组件对象，只会创建一次，即**一个类组件constructor内部代码只会执行一次**
+   2. 不能在第一次挂载到页面之前调用setState，**为了避免问题，构造函数(constructor)中严禁使用setState**
+2. **componentWillMount** 新版中已去掉
+   1. 正常情况下，和构造函数（constructor）一样，只会运行一次
+   2. 可以使用setState,但是为了避免bug,不允许使用setState，因为某些特殊情况下，该函数可能被调用多次
+3. **render** ***
+   1. 返回一个虚拟DOM，会被挂载到虚拟DOM中，最终渲染到页面的真实DOM中
+   2. render函数可能不止运行一次，只要重新渲染就会重新运行
+   3. 严禁使用setState，因为会导致无线递归渲染
+4. **componentDidMount** ***
+   1. 只会执行一次
+   2. 可以使用setState
+   3. 通常情况下，**会将网络请求，启动计时器等一开始需要的操作，书写在该函数中**
+   
+ **5-9更新阶段**
+  属性改变会更新、状态改变会更新
+
+5. **componentWillReceiveProp** 新版中已去掉
+   1. 即将接收新的属性值，属性值被重新赋值就会运行该函数，不一定属性值改变
+   2. 参数为新的属性对象props
+   3. 该函数可能会导致一些bug，不推荐使用
+
+6. **shouldComponentUpdate** ***
+   1. 指示React是否要重新渲染该组件，通过该函数返回true或false来指定，true代表重新渲染，false不重新渲染
+   2. 默认情况下，不写该函数会直接返回true
+   3. 
+
+7. **componentWillUpdate** 新版中已去掉
+   1. 组件即将被重新渲染
+8. **render**
+   1. 只要页面显示更新了就一定是运行了render重新渲染挂载虚拟DOM 
+9. **componentDidUpdate**
+    1. 参数1代表 之前的属性对象props；参数二代表之前的状态对象state
+    2. 往往在该函数中使用DOM操作，改变元素
+10. **componentWillUnmount** ***
+    1. 在虚拟DOM树中不存在了，运行该函数
+    2. 通常在该函数中销毁一些组件依赖的资源，如 计时器
+
+旧版生命周期图
+  ![avatar](http://m.qpic.cn/psc?/V51Mju1I4Uz5tx4Tu1Fj4XfvFp1oGJ7w/45NBuzDIW489QBoVep5mcSg.FFoJ2XtkJKWoEpG9PWMuJETC8KTcJ4U5C9tDhUaiwzmU5v0oPv25qjY5I83*ZDGCFk5dRcN448fXzfhOk48!/b&bo=0AcyBAAAAAABJ.E!&rf=viewer_4)
+
+新版生命周期图
+  ![avatar](http://m.qpic.cn/psc?/V51Mju1I4Uz5tx4Tu1Fj4XfvFp1oGJ7w/45NBuzDIW489QBoVep5mcfAMkQaJ6ohOw4K*8gVSHRHLgtBm.iyU2cpemTBKV59wfsDNe0cr86dGGEXuXllzAf4VIyGHibH5JYOsVbIjKks!/b&bo=0AfaAwAAAAABNx4!&rf=viewer_4)
+
+
+  React官方认为：数据的来源必须是单一的
+新版新增的钩子函数
+1. getDerivedStateFormProps  
+   在render执行前调用
+   通过参数可以获取到新的属性和状态
+   该函数式静态的，该函数的返回值会覆盖掉组件状态
+   该函数没什么用
+2. getSnapShotBeforeUpdate
+   1. 真实DOM构建完成，但还未实际渲染到页面中
+   2. 在该函数中通常用于DOM操作
+   3. 该函数的返回值会作为componentDidUpdate的第三个参数
+   4. 该函数只发生在更新阶段
+
+
+
+## 传递元素内容
+**如果给自定义组件传递元素内容，React会将元素内容作为props的children属性传递过去**
+```javascript
+  这是在函数组件内部显示传递进来的元素
+  import React from 'react'
+
+  export default function Comp(props) {
+      console.log(props)
+      return (
+          <div>
+              {props.children}
+              {props.content}
+          </div>
+      )
+  }
+
+
+  这是在组件如何传递元素
+  import Comp from './components/Comp';
+  function App() {
+    return (
+      <div className="App">
+        <Comp content={<h2>这是通过传递的元素内容1</h2>}>
+          <h1>这是传递的元素内容</h1>
+          //在组件内部写元素内容是语法糖，方便我们书写代码
+        </Comp>
+        
+      </div>
+    );
+  }
+
+  export default App;
+
+
+```
