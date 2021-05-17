@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 
+let ctx= React.createContext();
 class Tick extends Component {
+   
     constructor(props){
         super(props)
         // 初始化状态

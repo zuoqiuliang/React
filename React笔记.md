@@ -170,7 +170,7 @@
 4. 组件内部无法改变传进来的属性,**数据属于谁，谁才有权利改动**
    
 **总结：React元素如：```<span></span> ```本质上就是一个组件（内置组件），因为console.log（React元素）和函数组件/类组件都是一样的，只有type类型不同**
-
+****
 ## 组件状态
 什么是组件状态？**组件状态是组件可以自行维护的数据**，有时候简称状态
 * 组件状态只在类组件中有效
@@ -291,10 +291,11 @@ setState对状态的改变**可能**是异步的，也可能是同步的
   3. 如果要使用改变之后的状态，需要使用回调函数（setState的第二个参数）
   4. **如果新的状态要根据之前的状态进行运算，使用函数的方式改变状态（setState的第一个参数-回调函数）**
   5. **React会对异步的setState进行优化，将多次setState进行合并，即将多次状态改变完成后，再统一对state进行改变，然后只触发一次render函数**
+  ****
 ## 组件中的数据  总结
 1. props：该数据是由组件的使用者传递的数据，所有权（改动权）不属于组件本身，也不一定属于父组件，因为父组件的数据也可能由其他组件传递的呢！因此该组件无法改变改数据
 2. state：该数据是由组件自身创建的，所有权（改动权）属于组件自身，因此该组件有权利改动该数据
-
+****
 ## 事件
 **在React中，事件本质上就是一个属性**
 按照React对组件的约定，**由于事件本质是一个属性，因此事件也需要使用小驼峰命名法**
@@ -302,6 +303,7 @@ setState对状态的改变**可能**是异步的，也可能是同步的
 - **如果没有特殊处理，在事件处理函数中，this指向undefined**
    - 解决方法1：使用bind函数绑定this
    - 解决方法2：使用箭头函数（使用较多）
+****
 ## 生命周期
 **生命周期只存在于类组件中，函数组件每次调用都会重新运行函数，旧的组件即刻被销毁**
 
@@ -343,7 +345,7 @@ setState对状态的改变**可能**是异步的，也可能是同步的
 9. **componentDidUpdate**
     1. 参数1代表 之前的属性对象props；参数二代表之前的状态对象state
     2. 往往在该函数中使用DOM操作，改变元素
-10. **componentWillUnmount** ***
+10. **componentWillUnMount** ***
     1. 在虚拟DOM树中不存在了，运行该函数
     2. 通常在该函数中销毁一些组件依赖的资源，如 计时器
 
@@ -368,7 +370,7 @@ setState对状态的改变**可能**是异步的，也可能是同步的
    4. 该函数只发生在更新阶段
 
 
-
+****
 ## 传递元素内容
 **如果给自定义组件传递元素内容，React会将元素内容作为props的children属性传递过去**
 ```javascript
@@ -404,3 +406,423 @@ setState对状态的改变**可能**是异步的，也可能是同步的
 
 
 ```
+****
+## 表单
+### 受控组件
+组件的使用者，有能力完全控制该组件的行为和内容，通常情况下，受控组件没有自己的状态，其内容完全受到属性的控制。 可以认为是 函数组件
+### 非受控组件
+组件的使用者，没有能力完全控制该组件的行为和内容，组件的行为和内容完全自己控制。通常，非受控组件有自己的状态，而几乎不给属性。
+
+****
+## 属性默认值 和 类型检查
+### 属性默认值
+通过静态属性```defaultProps```来告知React属性默认值
+对于函数组件，混合默认属性在调用函数之前完成；对于类组件，混合默认属性在运行构造函数之前完成的；
+混合默认属性在生命周期初始化阶段,
+```js
+  函数组件中
+  Fun.defaultProps={
+    a:10,
+    b:20
+  }
+
+
+  类组件中
+  ClassFn.defaultProps={
+    a:10,
+    b:20
+  }
+
+  或者写在类里面利用es6的语法
+  class ClassFn extends Component {
+    static defaultProps={
+      a:10,
+      b:20
+    }//static静态字段代表在ClassFn构造函数的属性上
+
+    constructor(props){
+     
+    }
+    
+    render() {
+        return (
+            <div>
+            </div>
+        );
+    }
+}
+```
+
+### 类型检查
+ 使用 ``` prop-types```库
+通过静态属性``` propTypes```告知React如何检查属性
+```js
+import React, { Component } from 'react';
+import PropTypes from 'prop-types'
+  class Tick extends Component {
+    
+    static propTypes={
+      a:PropTypes.number.isRequired,//a属性必须是一个数字类型，并且必须传递
+      //number是个函数，isRequired是number上的属性，也是个函数，当检验的时候会一次运行这两个函数，如果校验不通过则报警告warning
+    }
+    
+    render() {
+        return (
+            <div>
+            </div>
+        );
+    }
+}
+
+PropTypes语法
+PropTypes.number://数字类型
+PropTypes.fun://函数类型
+PropTypes.object://对象类型
+PropTypes.string://字符串类型
+PropTypes.symbol://符号类型
+PropTypes.node://任何可以被渲染的内容， 一般为 字符串、数字、React元素
+PropTypes.element://React元素
+PropTypes.elementType://React元素类型
+PropTypes.oneOf(['xxx','xxx'])//枚举，属性值为数组中的一个
+PropTypes.oneOfType(['xxx','xxx'])//枚举，属性类型必须数组中的一个
+PropTypes.arrayOf(PropTypes.xxx)//必须是某一类型组成的数组
+PropTypes.objectOf(PropTypes.xxx)//对象由某一类型的值组成
+PropTypes.shape(对象)//传递的属性必须是对象，并且满足指定的对象格式要求，可以多加属性，不精确匹配
+PropTypes.exact(对象)//传递的属性必须是对象，并且满足指定的对象格式要求，精确匹配
+
+
+
+```
+
+**总结：先混合默认属性再类型检查**
+
+****
+## HOC高阶组件
+定义： 以组件作为参数，并返回一个组件
+区分组件与React元素
+```js
+这是组件
+class Tick extends Component {
+
+}
+这是组件
+function Comp(){
+
+}
+
+这是React元素
+<Comp/>
+<h1></h1>
+
+```
+**总结：**
+1. 不要在render中使用高阶组件
+2. 不要在高阶组件内部更改传入的组件
+
+****
+## ref
+使用场景：希望直接使用dom元素中的某个方法，或者直接希望使用自定义组件中的方法
+
+1. ref写在内置的html组件，得到的将是真是的dom对象
+2. ref写在自定义组件上，得到的将是类的实例（创建的对象）
+3. ref不能写在函数组件上
+   
+
+ref不再推荐使用字符串赋值，字符串的方式将来可能会被移除，因为有效率问题并且不够灵活；
+
+ref赋值时目前推荐使用对象或者函数
+
+1. 对象格式，通过React.createRef()
+```js
+//ref写成对象格式时一般写在构造器中
+  import React, { Component } from 'react';
+
+class Tick extends Component {
+    constructor(props){
+        super(props)
+       this.txt=React.createRef()
+      或者写成
+      this.txt={
+        current:null
+      }
+
+      那么在render函数渲染的时候会将有ref属性的元素赋值给this.txt.current
+    }
+    
+    render() {
+        return (
+            <div>
+                <input res={this.txt}/>
+            </div>
+        );
+    }
+}
+
+export default Tick;
+```
+
+2. 函数格式
+   1. 函数调用的时间为render初次执行一次，每次render执行时该函数执行两次
+   2. componentDidMount钩子函数调用时就可以使用ref的元素了
+   3. 由于每次render都要执行该函数，并且ref值改变时会运行两次，新的旧的函数分别调用一次，旧的函数被新的函数替代，调用时间节点componentDidUpdate钩子函数执行之前；旧的函数被调用时参数传递null；新的函数调用时传递绑定的元素
+   4. ref所在的组件被销毁，会调用该函数一次
+
+    ```js
+    import React, { Component } from 'react';
+
+    class Tick extends Component {
+        
+        
+        render() {
+            return (
+                <div>
+                  <input ref={el=>{this.box=el}}
+                  //这里将绑定的元素赋值给box属性，我们可以在this.box中拿到绑定的元素了
+                  这是将函数写在了render里面，会导致render每次执行时该函数会运行两遍，如果想要运行一次可以写在类组件的原型函数上
+                  />
+                </div>
+            );
+        }
+    }
+
+    export default Tick;
+
+
+    ```
+**注意：谨慎使用ref，因为这是反模式的，不符合React数据渲染页面的哲学理念**
+
+
+****
+## Context上下文
+Context表示做某一些事情的环境
+React上下文特点：
+1. 当某个组件创建了上下文后，上下文中的数据会被所有后代组件共享
+2. 如果某个组件依赖了上下文后，会导致该组件不再纯粹（纯粹意味着 外部属性仅来源于属性）
+3. 一般情况下，用于第三方组件（通用组件）
+![avatar](http://m.qpic.cn/psc?/V51Mju1I4Uz5tx4Tu1Fj4XfvFp1oGJ7w/45NBuzDIW489QBoVep5mcfXTDKtSe09ys1uTgEVkaFJ0RL*TvY4fDQwtzMUHz6C6BjsZBKbkzHODBceq3*IYZ5y2ryI6sBy2Cnqn3PWobj8!/b&bo=4wU4BAAAAAABN8o!&rf=viewer_4)
+
+![avatar](http://m.qpic.cn/psc?/V51Mju1I4Uz5tx4Tu1Fj4XfvFp1oGJ7w/45NBuzDIW489QBoVep5mcXTw7lsulxaKuV.gOjRneSTAcVqR2Q2GL4kBerOEv2gspopUtk03V.v9jC*YYTDh6AJlNh.YCBa69dOVGpeMX9c!/b&bo=cgY4BAAAAAABJ0g!&rf=viewer_4)
+
+
+### 旧版上下文API
+**创建上下文**
+只有类组件才可以创建上下文，一般上下文数据来自类组件的状态或者属性，所以函数组件没有状态就不可以创建上下文，这是旧版的理念
+1. 第一步：给类组件书写静态属性 childContextTypes，使用该属性对上下文中的数据类型进行约束（必填）
+2. 第二步：添加实例方法 getChildContext,该方法返回的对象就是上下文中的数据，该数据必须满足类型约束。该方法会在每次render运行之后运行，也就是属性或者状态变化就会运行该函数。
+
+**使用上下文中的数据**
+一个组件使用上下文中的数据时，组件中必须有一个静态属性contextTypes，该属性描述了上下文中的数据类型
+1. 可以在类组件的构造函数中通过第二个参数获取上下文数据
+2. 在类组件的this.context中获取
+3. 在函数组件中的第二个参数获取
+
+**上下文数据变化**
+上下文中的数据不可以直接变化，最终都是通过状态或者属性的改变而改变
+
+上下文中加入一个处理函数，用于后代元素更改上下文的数据 类组件中this.context.方法名即可更改
+
+
+### 新版上下文API
+**创建上下文**
+1. 上下文是一个独立于组件的对象，该对象通过React.createContext()创建,React.createContext()返回一个对象，对象中有两个属性
+* Provider属性：生产者；这是一个组件，该组件会创建一个上下文，该组件有一个value属性，可以为数据赋值(类组件适合使用Provider)
+   
+  ```js
+  import React, { Component } from 'react';
+
+    let ctx= React.createContext();
+    
+    class Tick extends Component {
+
+      state={
+        a:123,
+        b:'bbb'
+      }
+        render() {
+            return (
+              <ctx.Provider value={this.state}>
+                <div>
+                    
+                </div>
+              <ctx.Provider />
+            );
+        }
+    }
+
+    export default Tick;
+      
+  ```
+ 
+****
+**使用上下文中的数据**
+**类组件使用上下文**
+  1. 类组件使用上下文数据时必须拥有静态属性 contextType，并且赋值为上下文对象
+  2. 类组件中在this.context中获取上下文对象中的数据
+  3. 也可以使用Consumer获取使用上下文数据
+   ```js
+   import React, { Component } from 'react';
+
+    let ctx= React.createContext();
+    class Tick extends Component {
+      static contextType=ctx;
+        类组件使用上下文数据时必须拥有静态属性 contextType，并且赋值为上下文对象
+        
+        render() {
+            return (
+                <div>
+                    {this.context.a}
+                    类组件中在this.context中获取上下文对象中的数据
+                </div>
+            );
+        }
+    }
+    export default Tick;
+   
+   
+   ```
+
+**函数组件使用上下文**
+  1. 函数组件中使用 Consumer来获取上下文数据
+  * Consumer属性：消费者；这是一个组件，它的子节点是一个函数（函数组件适合使用Consumer）
+   ```js
+    import React from 'react'
+    let ctx= React.createContext();
+    export default function Index(props) {
+      
+    return (
+        <div>
+          <ctx.Consumer>
+            (value)=><span>{value}</span>
+          </ctx.Consumer>
+          该组件会将上下文数据传给子节点函数的参数，最终将函数返回值展示
+
+         </div>
+    )
+   }      
+         
+      
+  ```
+
+  **注意细节**
+  如果上下文提供者中的value属性发生变化（object.is比较，**每次状态state改变都会产生一个全新的对象**），会导致上下文提供者的所有后代元素全部渲染（无论子组件是否有优化，即无论shouldComponentUpdate钩子函数返回true还是false）
+
+****
+
+  ## PureComponent
+  纯组件，用于避免不必要的渲染（运行render函数），从而提高效率
+
+  PureComponent是一个组件，如果A组件继承自该组件，则A组件的shouldComponentUpdate钩子函数会对属性和状态进行浅比较，如果属性和状态的当前值和更新的值相同则不运行render函数
+    ```js
+      import React, { PureComponent } from 'react';
+
+      let ctx= React.createContext();
+      class Tick extends PureComponent {
+        这样就继承自PureComponent组件了，也拥有了shouldComponentUpdate浅比较
+          render() {
+              return (
+                  <div>
+                     
+                  </div>
+              );
+          }
+      }
+
+      export default Tick;
+    ```
+  **注意**
+  类组件：
+  1. 为了效率尽量使用PureComponent
+  2. 改变状态时一定要用setDate覆盖旧的状态对象，以让shouldComponentUpdate浅比较的出来
+  3. 有个第三方库Immutable.js,专门用于制作不可变对象
+   
+  函数组件：
+  1. 使用React.memo函数制作纯组件
+
+****
+## render props
+1. 某个组件需要一个属性，该属性是个函数，函数的参数是组件内部调用时传递的，函数的返回值用于渲染
+2. 通常该属性名字叫render，属性值是个函数
+ ```js
+  <A>
+    (
+      <>
+      (value)=><span>用于渲染的内容{value.xxx}</span>
+      </>
+    )
+  </A>
+ 或者写在组件render属性上
+
+ <A render={(value)=><span>用于渲染的内容{value.xxx}</span>}></A>
+ 
+ ```
+**注意**
+有时候，某些组件的各种功能以及处理逻辑完全相同，只是界面渲染的代码不一样，建议使用 render props或者HOC高阶组件来处理
+
+****
+## Portals
+插槽：将一个指定的React元素渲染到指定的DOM容器中
+ReactDOM.createPortal(React元素，真实DOM容器)
+
+注意事件冒泡
+React中的事件是包装过的，它的事件冒泡是根据虚拟DOM树的结构冒泡的，跟真实DOM无关
+
+****
+## 错误边界
+问题：默认情况下，若一个组件在**渲染期间**（render）发生错误（渲染时是同步的），会导致整个组件树全部被卸载不显示
+
+解决问题：
+错误边界：是一个组件，该组件会捕获到渲染期间（render）子组件发生的错误，并有能力阻止错误继续传播
+
+**某个组件捕获错误**
+1. 编写生命周期函数getDerivedStateFromError
+   1. 特点：静态函数
+   2. 运行时间点：渲染子组件过程中，发生错误之后，在更新页面之前
+   3. 注意：**只有该组件的子组件发生错误才会运行该函数**，自身发生错误不运行
+   4. 该函数返回一个对象，React会将该对象的属性覆盖掉当前组件的state,那么我们就可以根据该组件的state来渲染不同内容了！
+   5. 参数：错误对象
+   6. 用于改变状态
+
+2. 编写生命周期函数componentDidCatch
+   1. 特点：实例方法
+   2. 运行时间点：渲染子组件过程中，发生错误之后，在更新页面之后
+   3. 通常该函数用于记录错误信息
+   
+**细节**
+
+某些错误，错误边界组件无法捕获
+1. 自身组件的错误
+2. 异步的错误
+3. 事件中的错误
+   
+**总结**
+仅处理渲染子组件期间的同步错误
+
+****
+
+## 渲染
+* React元素：内置组件、自定义组件 如```<span></span> ```和 ```<APP></APP> ```
+* React节点：专门用于渲染到UI界面的对象，**React通过React元素创建React节点**，ReactDOM一定是通过React节点来渲染的,React节点我们看不到的平时，它是私有的在React中。
+  * 节点类型：
+  1. React DOM节点：创建该节点的React元素类型一定是字符串
+  2. React 组件节点：创建该节点的组件类型一定是函数或者 类
+  3. React 文本节点：该节点由字符串、数字创建
+  4. React 空节点：该节点由 null、undefined、false创建
+  5. React 数组节点：该节点由一个数组创建
+   
+### 首次渲染（新节点渲染）
+1. 通过参数的值创建节点
+2. 根据不同的节点做不同的事情
+   1. 文本节点:通过document.createTextNode创建真实的文本节点
+   2. 空节点：什么也不做
+   3. 数组节点：遍历数组，将数组每一项递归创建节点（回到第1步进行反复操作直到遍历结束）
+   4. DOM 节点：通过document.createElement创建真实的DOM对象，然后立即设置该DOM对象的各种属性，再遍历对应React元素的children属性（递归操作，回到第1步进行反复操作直到遍历结束）
+   5. 组件节点：
+      1. 函数组件：调用函数（该函数必须返回一个可以生成节点的内容），将该函数的返回结果递归生成节点（递归操作，回到第1步进行反复操作直到遍历结束）
+      2. 类组件：
+         1. 创建该类的实例
+         2. 立即调用对象的生命周期方法 getDerivedStateFromProps
+         3. 运行该对象的render方法，得到节点对象（递归操作，回到第1步进行反复操作）
+         4. 将该组件的componentDidMount加入到执行队列（当整个虚拟DOM树全部构建完毕，并将真实DOM加入到容器中后，执行该函数）
+3. 生成出虚拟DOM树后，保存起来，以便后续复用
+4. 将之前生成的真实DOM加入到容器中
+**React节点生成的树才是真正的虚拟DOM树**，之前说React元素就是虚拟DOM是不严格说法
