@@ -825,3 +825,244 @@ React中的事件是包装过的，它的事件冒泡是根据虚拟DOM树的结
 3. 生成出虚拟DOM树后，保存起来，以便后续复用
 4. 将之前生成的真实DOM加入到容器中
 **React节点生成的树才是真正的虚拟DOM树**，之前说React元素就是虚拟DOM是不严格说法
+
+****
+## 工具
+### 严格模式
+- StrictMode(```React.StrictMode```)本质是一个组件，该组件不进行UI渲染
+- ```React.Fragment <> </>```它的作用是，在渲染内部组件时，发现不合适的代码
+  检查标准：
+  - 识别不安全的生命周期，如 旧版生命周期
+  - 识别使用过时字符串ref API警告
+  - 识别使用废弃的findDOMNode方法的警告
+  - 检查意外的副作用（一个函数中做了一些影响外部数据的事情）
+    1. 异步处理
+    2. 改变参数值
+    3. setState
+    4. 本地存储
+    5. 闭包，改变函数外部变量
+       React要求副作用代码仅能出现在以下生命周期函数中
+       - ComponentDidMount
+       - ComponentDidUpdate
+       - ComponentWillUnMount
+  - 检查过时的context API
+### Profiler
+性能分析工具 浏览器控制台的插件
+
+****
+## HOOK
+
+HOOK专门用于增强函数组件的功能（HOOK不能在类组件中用），使之可以成为类组件的替代品
+ 
+ 定义：HOOK（钩子）本质上是一个函数，该函数可以挂载任何功能，总是以use开头命名
+
+### State Hook
+State Hook 是在函数组件中使用的函数（useState）,用于在函数组件中使用状态
+
+官方强调：没有必要更改已完成的组件，官方目前没有计划取消类组件
+- useState函数有一个参数，这个参数的值表示状态的默认值
+- 函数的返回值是一个数组，该数组一定包含两项
+  第一项：当前状态的值
+  第二项：改变状态的函数
+- 一个函数组件中可以有多个状态，这非常有利于横向切分关注点
+```js
+  import React,{useState} from 'react'
+    function App() {
+      let arr=useState(0);//使用一个状态，该状态默认值是0，得到一个数组
+      let n=arr[0];//第一个参数是状态的值
+      let setN=arr[1];//第二个参数是设置状态的函数
+
+      以上三句代码可以使用es6的结构一句话完成
+      let [n,setN]=useState(0);
+
+      return (
+        <div className="App">
+          <button onClick={()=>{
+            setN(n-1)
+          }}>-</button>
+          <span>{n}</span>
+          <button onClick={()=>{
+            setN(n+1)
+          }}>+</button>
+        </div>
+      );
+    }
+    export default App;
+```
+**细节**
+
+1. useState最好写在函数的起始位置，便于阅读
+2. useState严禁出现在代码块(判断、循环)中
+3. useState返回的函数（数组第二项），引用不变，节约内存空间
+4. **如果使用useState返回的数组第二项函数来改变数据，且数据和之前数据相等，不会导致重新渲染**
+5. 如果使用useState返回的数组第二项函数来改变数据，传入的值不会和原来的值合并，而是替换
+6. 强制刷新组件:
+   1. 类组件：使用forceUpdate
+   2. 函数组件：useState返回的数组第二项函数使用一个空对象
+7. **如果某些状态之间没有必然的联系，应该分化为不同的状态，而不要合并成一个对象**
+8. 和类组件改变状态时一样，**状态的改变可能是异步的（在虚拟DOM事件中），多个状态变化会合并以提高效率**，此时不能信任之前的状态，而应该使用回调函数的方式改变状态，如果状态变化使用了之前的状态，使用函数最保险
+
+
+
+### Effect Hook
+Effect Hook：用于在函数组件中处理副作用
+
+副作用：
+1. ajax请求
+2. 计时器
+3. 其他异步操作
+4. 更改真实DOM对象
+5. 本地存储
+6. 其他会对外部产生影响的操作（如：闭包）
+- useEffect这是一个函数，该函数接收一个回调函数作为参数，接收的回调函数就是需要进行副作用操作的函数，这个回调函数的运行时间点在页面完成真实的UI渲染之后，因此这个回调函数的执行是异步的，不会阻塞浏览器
+
+**细节**
+1. 每个函数组件中可以多次使用useEffect，但严禁出现在代码块(判断、循环)中
+2. useEffect中的回调函数（副作用函数A）可以有返回值，返回值是一个函数或者undefined，回调函数返回的函数叫清理函数（R这是自己取个名字好写笔记）；
+   1. R函数运行的时间点在每次运行回调函数A之前
+   2. 首次渲染函数组件不会运行R
+   3. 函数组件销毁一定运行R
+3. useEffect函数可以传递第二个参数
+   1. 第二个参数是个数组
+   2. 数组中记录useEffect第一个参数回调函数A的依赖数据
+   3. **当组件重新渲染后，只有依赖数据与上一次不一样时，才会执行副作用函数A**
+4. 所以，当传递了第二个参数依赖数据后，如果数据没有发生变化 则：
+   1. 副作用函数A仅在第一次渲染后运行
+   2. 清理函数R仅在卸载组件后运行
+   3. 使用空数组[]作为第二个参数，副作用函数A仅在挂载时运行
+5. 副作用函数A中，如果使用了函数上下文中的变量，则由于闭包的影响，会导致副作用函数中变量不会实时变化
+  
+### 自定义Hook
+定义：将一些常用的、跨越多个组件的HOOK功能，抽离出去形成一个函数，该函数就是自定义HOOK。
+
+由于自定义Hook内部需要Hook功能，所以它本身也需要按照Hook的功能实现，规则如下：
+1. 函数名必须以use开头
+2. 其他函数组件调用自定义Hook时，要将自定义Hook函数放到顶部，不要放到（循环、判断）中
+### Context Hook
+useContext这是个函数
+```js
+  import React,{useContext} from 'react'
+    let ctx=React.createContext();
+
+    function Text() {
+      const value = useContext(ctx)
+      return (
+        <h1>{value}</h1>
+        这里的value就是上下文中的数据
+      )
+    }
+
+    function App() {
+      return (
+        <ctx.Provider value={123}>
+          <Text></Text>
+        </ctx.Provider>
+      );
+    }
+
+    export default App;
+
+```
+
+
+### Callback Hook
+useCallback函数:用于得到固定引用值得函数，**返回第一个参数函数的一个函数地址**，通常它用于性能优化，它有两个参数：
+1. 参数一是个函数，useCallback会固定该函数的引用，只要依赖项没有发生变化，则始终返回之前函数地址
+2. 参数二是个数组，记录依赖项
+
+### Memo Hook
+作用：用于保持一些稳定的数据，通常用于优化
+useMemo函数:用于得到固定引用值得数据，**返回第一个参数函数的返回结果**，通常它用于性能优化，
+它有两个参数：
+1. 参数一是个函数，useMemo会固定该函数的返回结果，只要依赖项没有发生变化，则始终返回之前的数据结果
+2. 参数二是个数组，记录依赖项
+
+**如果React元素本身没有发生变化，一定不会重新渲染**，所以我们在生成许多React元素(div、p等)时，使用memo hook极大节省效率
+
+### Ref Hook
+
+useRef函数：
+参数1：返回一个固定的对象
+
+### LayoutEffect Hook
+useEffect :运行节点在浏览器渲染完成后，用户看到引得渲染结果后
+useLayoutEffect: 运行节点在，完成了DOM改动，但是还没有呈现给用户，用法、传参与useEffect 完全相同
+
+注意：虽然useLayoutEffect不会有页面闪烁，但是有可能会导致渲染阻塞，应该尽量使用useEffect，如果出现问题再考虑useLayoutEffect
+
+### DebugValue Hook
+
+useDebugValue:用于将自定义Hook的关联数据显示到调试栏（专门用于调试）
+
+****
+## 路由
+定义：根据不同的页面地址，展示不同的组件（页面）
+### React Router
+React Router包含两个库：
+1. react-router:路由核心库
+2. react-router-dom:利用路由核心库，结合实际的页面（PC、手机端），实现跟页面路由密切相关的功能
+
+**安装：**
+- 如果在页面中实现路由，需要安装react-router-dom这个库.
+- react-router-dom依赖react-router所以安装
+react-router-dom时会自动安装react-router
+
+### 两种模式
+- url地址组成：
+例：http://www.react.com:443/news/1-2-1/index.html?openId=1232456&uuid=789456#aaa
+该url组成：
+    1. 协议名（http）
+    2. 主机名（host）
+       1. 可以是ip地址
+       2. 可以是预设值 如：localhost
+       3. 可以是域名 如：www.react.com
+       4. 可以是局域网中电脑名称
+    3. 端口号（port）：443
+       1. 如果协议是http，端口号默认80，可以不写端口号
+       2. 如果协议是https，端口号默认是443，可以不写端口号
+    4. 路径（path）:news/1-2-1/index.html
+    5. 地址参数（search/query）：openId=1232456&uuid=789456
+    6. 哈希（hash）：aaa
+
+
+
+1. Hash Router哈希路由
+  根据url地址中的hash值来确定如何显示组件
+ > 使用hash路由原因：hash的变化不会导致页面的刷新
+ 这种模式兼容性最好
+
+
+
+2. Browser History Router 浏览器历史记录路由
+   根据url地址中的path路径来确定如何显示组件
+  > HTML5出现后，新增了History API,从此以后，浏览器拥有了改变路径(path)而不刷新页面的方式
+
+
+### 路由组件
+  React-Router为我们提供了两个重要组件
+#### Router组件
+特点：它本身不做任何展示，仅提供路由模式配置，另外，**该组件会产生一个上下文**，上下文中会提供一些实用的对象和方法，供其他相关组件使用
+Router组件有两个：
+1. HashRouter组件：该组件使用hash模式匹配(实际开发用得少)
+2. BrowserRouter组件：该组件使用BrowserHistory模式匹配（用的多）
+> 通常情况下，Router组件只有一个，将该组件包裹整个页面
+> 
+#### Route组件
+根据不同的地址，展示不同的组件
+> 地址取决于Router组件使用的HashRouter组件还是BrowserRouter组件，如果是HashRouter组件，地址就是#后面的内容；如果是BrowserRouter组件，地址就是path
+
+重要属性：
+1. path:匹配的路径
+   1. 默认情况下，不区分大小写，可以设置sensitive属性为true来区分大小写
+   2. 默认情况下，只匹配开头的目录，如果要精确匹配，配置exact属性为true
+   3. 如果不写path，则会匹配任意路径
+2. component:匹配成功后要显示的组件
+3. children:
+   1. 传递React元素，无论是否匹配，一定会显示children，忽略component属性
+   2. 传递一个函数，该函数有多个参数，这些参数来自于上下文，该函数返回React元素，则一定显示返回的元素，并且忽略component属性
+   3. 如果Route组件在Switch组件中，则Route组件的children属性不起作用、不渲染children中的React元素
+> Route组件可以写到任意地方，只要保证是Router的后代元素即可
+#### Switch 组件
+写到Switch组件中的Route组件，当匹配到第一个组件后，立即停止匹配 
+> 由于匹配时Switch组件会循环所有子元素，让每个子元素去完成匹配，若匹配到则渲染对应的组件，然后停止循环、匹配；
+因此不能在Switch的子元素中使用除Route组件之外的组件。
