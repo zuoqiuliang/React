@@ -12,14 +12,14 @@ export default class Layout extends Component {
         return (
             <div className='container'>
                 <header className='header'>
-                    导航区域通过属性传递{this.props.header}
+                    {this.props.header}
                 </header>
                 <div className="middle">
                     <div className="aside">
-                        左侧菜单栏{this.props.aside}
+                        {this.props.aside}
                     </div>
                     <div className="main">
-                        右侧主区域{this.props.children}
+                        {this.props.children}
                     </div>
                 </div>
             </div>

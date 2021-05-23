@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function Admin() {
+export default function CourseAdd() {
     return (
         <div>
-            后台页面
+            添加课程
         </div>
     )
 }

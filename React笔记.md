@@ -1048,7 +1048,7 @@ Router组件有两个：
 > 通常情况下，Router组件只有一个，将该组件包裹整个页面
 > 
 #### Route组件
-根据不同的地址，展示不同的组件
+根据不同的地址（path），展示不同的组件
 > 地址取决于Router组件使用的HashRouter组件还是BrowserRouter组件，如果是HashRouter组件，地址就是#后面的内容；如果是BrowserRouter组件，地址就是path
 
 重要属性：
@@ -1066,3 +1066,53 @@ Router组件有两个：
 写到Switch组件中的Route组件，当匹配到第一个组件后，立即停止匹配 
 > 由于匹配时Switch组件会循环所有子元素，让每个子元素去完成匹配，若匹配到则渲染对应的组件，然后停止循环、匹配；
 因此不能在Switch的子元素中使用除Route组件之外的组件。
+
+### 路由信息
+Router组件会创建一个向下文，并且会向 上下文中注入一些信息。该上下文对开发者是隐藏的，**Route组件若匹配到了地址，会将这些上下文中的信息对象作为属性传入对应的组件。**
+
+作为属性传递给Route对应组件的上下文信息对象有三个：
+1. **history对象**
+   它并不是window.history对象，我们利用history对象实现无刷新跳转地址
+   - push方法：将某个新的地址入栈（历史记录栈），调用该方法会改变上下文，导致Router组件刷新，导致上下文相关的所有Route组件全部刷新
+    **参数1**：新的地址
+    **参数2**：可选，附带的状态数据
+   - replace方法：将某个新的地址替换掉当前栈中的地址
+
+
+
+
+> 问题：为什么不直接使用原生的window.history？
+> 1. 因为React中Router组件有两种，使用React封装好的history对象这两种Router组件都可以使用，而使用原生的window.history只能在BrowserRouter组件下使用，HashRouter组件不能使用
+> 2. 第二点原因是当使用window.history.pushState方法时，React没有办法收到任何通知，导致React不知道地址发生了变化，结果导致不会重新渲染组件
+
+2. **location对象**
+   与React中history.location完全一致，是同一个对象
+location对象中记录了当前地址的相关信息（pathname、search、hash）**与整个url地址有关**
+ > 我们通常使用第三方库```query-string```,用于解析地址栏中的数据，直接使用qs.parse()转义
+
+3. **match对象**
+   match对象中保存了路由匹配的相关信息，**只与path有关**
+   - isExact:事实上当前路径和路由配置路径是否是精确匹配
+   - params:获取路径规则中对应的数据
+   - > ```<Route path='/news/year?/month?/day?' />```这种?号代表url中对应项可填可不填
+   - > ```<Route path='['/news','/news/year/month/day']' />```可以写成数组格式，代表数组中任意一项都可匹配
+  
+> 实际上，书写Route组件path时，可以书写```string-pattern```（字符串正则）（类似vue中的动态路由）
+> react-router使用了第三方库，Path-to-RegExp，该库将字符串正则转换成真正的正则
+
+
+**向某个页面传递数据的方式**
+
+1. state:在使用history.push()时传递第二个参数
+2. **利用search:把数据填写到地址栏中的?后**
+3. 利用hash:把数据填写到地址栏中的#后
+4. **利用params:把数据填写到路径中**
+
+
+#### 非路由组件获取路由信息
+非路由组件是指 不是Route组件上component属性的组件；
+
+某些组件并不是Route组件上component属性的组件，而是在Route组件上component属性的组件内部，或者其他普通组件内部，因此这样的组件没有路由信息（history、location、math），如果这样的组件想获取路由信息，有两种方式：
+
+> 1. 将路由信息从Route组件上component属性的组件（父组件）一层一层通过props传递过去
+> 2. 使用react-router提供的高阶组件withRouter（react内部组件肯定有Router组件提供的上下文中的信息，即有路由信息），包装要使用路由信息的组件，该高阶组件返回一个新组件，新组件向这个组件传递路由信息
