@@ -1061,6 +1061,7 @@ Router组件有两个：
    1. 传递React元素，无论是否匹配，一定会显示children，忽略component属性
    2. 传递一个函数，该函数有多个参数，这些参数来自于上下文，该函数返回React元素，则一定显示返回的元素，并且忽略component属性
    3. 如果Route组件在Switch组件中，则Route组件的children属性不起作用、不渲染children中的React元素
+4. render：传递一个函数，该函数有一个参数是上下文对象，该函数返回一个React元素，只有匹配后才运行render函数来显示React元素
 > Route组件可以写到任意地方，只要保证是Router的后代元素即可
 #### Switch 组件
 写到Switch组件中的Route组件，当匹配到第一个组件后，立即停止匹配 
@@ -1073,13 +1074,66 @@ Router组件会创建一个向下文，并且会向 上下文中注入一些信�
 作为属性传递给Route对应组件的上下文信息对象有三个：
 1. **history对象**
    它并不是window.history对象，我们利用history对象实现无刷新跳转地址
-   - push方法：将某个新的地址入栈（历史记录栈），调用该方法会改变上下文，导致Router组件刷新，导致上下文相关的所有Route组件全部刷新
+  - push方法：将某个新的地址入栈（历史记录栈），调用该方法会改变上下文，导致Router组件刷新，导致上下文相关的所有Route组件全部刷新
     **参数1**：新的地址
     **参数2**：可选，附带的状态数据
-   - replace方法：将某个新的地址替换掉当前栈中的地址
+  - replace方法：将某个新的地址替换掉当前栈中的地址
+  - **listen**:向栈中添加一个监听器，监听地址的变化，当地址变化时，会调用传递的参数函数，**运行时间点在即将跳转到新页面时，所以可以通过this.props.location获取之前页面地址**
+    - 参数1：函数
+      - 参数1：location对象，记录当前的地址信息
+      - 参数2：action，一个字符串，表示进入当前地址的方式：
+        1. POP(出栈)：通过点击浏览器前进、后退按钮；调用history.go、history.goBack、history.goForWard
+        2. PUSH(入栈)
+          - 点击Link、NavLink组件等超链接
+          - 调用history.push
+        3. REPLACE(替换)
+          - 调用history.replace
 
+    - listen返回结果：一个函数，可以调用该函数取消监听
 
+  - **block**：函数，设置一个阻塞，传递一个字符串作为阻塞消息或者传递函数（函数返回结果是个字符串），当页面发生跳转时，会进入阻塞，并将阻塞消息传递给路由根组件Router组件的getUserConfirmation方法的第一个参数;block、getUserConfirmation在listen调用之前执行
+    **history有且仅能添加一个阻塞**
+    **不管在哪个组件添加阻塞，都会调用Router组件的getUserConfirmation，因为同一个页面history都是同一个**
+    1. 参数可以为字符串或者函数
+      - 如果为函数，参数：
+        - 参数1：location对象，记录当前的地址信息
+        - 参数2：action，一个字符串，表示进入当前地址的方式：
+          1. POP(出栈)：通过点击浏览器前进、后退按钮；调用history.go、history.goBack、history.goForWard
+          2. PUSH(入栈)
+            - 点击Link、NavLink组件等超链接
+            - 调用history.push
+          3. REPLACE(替换)
+            - 调用history.replace
 
+  - block返回结果：一个函数，可以调用该函数取消阻塞
+  
+    ```js
+      假设这是个类组件
+    let lis= props.history.listen((location,action)=>{
+        //地址变化时会调用该回调函数
+        //可以通过this.props.location获取之前页面地址
+        this.props.history.block('是否跳转页面？')//设置了阻塞
+        block函数传递一个字符串，用于拦截跳转，在listen回调函数触发前触发block函数；
+        跳转前设置的阻塞不起确定作用，阻塞只提供字符串消息，起决定作用的是Router组件的一个属性
+      })
+      lis()//调用返回的函数即可取消监听
+      
+        <Router getUserConfirmation={(msg,callback)=>{
+          1. msg就是阻塞的字符串;
+          2. 调用callback(true)代表跳转，callback(false)代表不跳转；
+          3. 这个不写的话就会默认值callback(window.confirm(msg))，显示一个弹框，点击确定代表callback(true)，点击取消代表callback(false)
+        }} ></Router>
+
+    ```
+
+### 阻止跳转
+利用 react-router-dom中的prompt组件完成阻止跳转；
+```js
+  <Prompt when={当这个值为true时触发阻止操作，为false不阻止} 
+    message='是否跳转吗'
+  >
+
+```
 
 > 问题：为什么不直接使用原生的window.history？
 > 1. 因为React中Router组件有两种，使用React封装好的history对象这两种Router组件都可以使用，而使用原生的window.history只能在BrowserRouter组件下使用，HashRouter组件不能使用
@@ -1087,13 +1141,15 @@ Router组件会创建一个向下文，并且会向 上下文中注入一些信�
 
 2. **location对象**
    与React中history.location完全一致，是同一个对象
-location对象中记录了当前地址的相关信息（pathname、search、hash）**与整个url地址有关**
+location对象中记录了当前地址的相关信息（pathname、search、hash）**与完整url地址有关**
  > 我们通常使用第三方库```query-string```,用于解析地址栏中的数据，直接使用qs.parse()转义
 
 3. **match对象**
-   match对象中保存了路由匹配的相关信息，**只与path有关**
+   match对象中保存了路由**匹配**的相关信息，**只与匹配path有关**
    - isExact:事实上当前路径和路由配置路径是否是精确匹配
    - params:获取路径规则中对应的数据
+   - path:获取Route组件上得path属性值
+   - url:获取真实浏览器地址path与Route组件path匹配的那部分路径
    - > ```<Route path='/news/year?/month?/day?' />```这种?号代表url中对应项可填可不填
    - > ```<Route path='['/news','/news/year/month/day']' />```可以写成数组格式，代表数组中任意一项都可匹配
   
@@ -1116,3 +1172,72 @@ location对象中记录了当前地址的相关信息（pathname、search、hash
 
 > 1. 将路由信息从Route组件上component属性的组件（父组件）一层一层通过props传递过去
 > 2. 使用react-router提供的高阶组件withRouter（react内部组件肯定有Router组件提供的上下文中的信息，即有路由信息），包装要使用路由信息的组件，该高阶组件返回一个新组件，新组件向这个组件传递路由信息
+
+
+### 其他路由
+
+#### Link
+  生成一个无刷新跳转的a元素
+  属性：
+  1. to属性:
+     - 字符串：跳转的目标地址
+     - 对象：
+       - pathname:url路径
+       - search：参数信息
+       - hash
+       - state:附加的状态数据
+  2. replace属性：布尔属性，表示是否替换当前地址，默认false，不替换
+  3. innerRef：可以将内部的a元素的ref属性附着在传递的对象或函数参数上
+      - 属性值为对象或者函数
+  4. className、style等可以给a元素加的属性
+#### NavLink
+   是一种特殊的Link,Link组件具备的组件，NavLink都有；
+   NavLink具备的额外功能：根据当前地址和链接地址，来决定该链接的样式，匹配成功会带有active类样式。
+   属性：
+   -  activeClassName:匹配时使用自定义类名
+   -  activeStyle:匹配时使用的内联样式
+   -  exact:是否精确匹配
+   -  sensitive:匹配时是否区分大小写
+   -  strict:是否严格匹配最后一个 斜杠
+   -  className、style等可以给a元素加的属性
+#### Redirect
+重定向组件，当加载到该组件时会自动跳转（无刷新）到另外地址
+  1. to属性： 
+   - 字符串类型：跳转的地址
+   - 对象类型：跳转的地址信息
+      - pathname:url路径
+      - search：参数信息
+      - hash
+      - state:附加的状态数据
+  2. push属性：默认为false，表示跳转使用替换的方式，设置true后，则使用push方式跳转
+  3. from属性：当匹配到from地址规则时才跳转
+  4. exact:是否精确匹配
+  5. sensitive:匹配时是否区分大小写
+  6. strict:是否严格匹配最后一个 斜杠
+
+
+### 自定义路由
+自定义路由即我们自己封装一个函数组件，将Route组件包裹下，返回Route组件，将Route组件的component、render、path等属性全都传递给我们的自定义路由
+
+**自定义路由组件和Route组件功能完全一样！**
+
+### 导航守卫
+导航守卫：当离开一个页面进入另一个页面时，触发的事件
+
+> 自己封装一个导航守卫组件，与上下文对象的props.history.block以及Router组件的getUserConfirmation函数联用，将该组件作为根组件，并把Router组件包装起来
+
+### 滚动条复位
+1. 使用高阶组件，将Route对应的组件包装一下，在返回的新组件内的componentDidMount钩子函数中来设置scrollTop为0、
+2. 使用自定义HOOK，利用useEffect(在函数组件中)
+   ```js
+   function useScroll(pathname){
+     useEffect(()=>{
+       将scrollTop设置为0；
+       或者自己写一个动画函数来设置滚动条为0
+     },[pathname])
+   }
+   在初次渲染完成调用useEffect的回调函数，依赖值是传入的地址,每次切换地址时将调用useEffect的回调函数
+   ```
+   > 这个自定义HOOK放在每个Route对应的组件内即可
+
+
