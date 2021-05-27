@@ -1241,3 +1241,142 @@ location对象中记录了当前地址的相关信息（pathname、search、hash
    > 这个自定义HOOK放在每个Route对应的组件内即可
 
 
+## Redux
+
+#### Redux核心概念
+##### MVC
+它是一个UI的解决方案，用于降低UI，以及UI关联的数据的复杂度。
+- 传统的服务端的MVC
+  环境:
+  1. 服务端需要响应给客户端一个完整的HTML
+  2. 该HTML包含页面需要的数据
+  3. 浏览器仅承担渲染页面的作用
+  > 以上方式叫做服务端渲染， 即服务器将完整的页面组装好后，一起发送给客户端。服务器端要处理UI中要用到的数据，并且要将数据嵌入到页面中，最终生成一个完整的HTML页面响应。为了降低处理这个过程的复杂度，出现了MVC模式
+MVC模式：
+  1. Controller:处理请求，组装这次请求需要的数据
+  2. Model:需要用于UI渲染的数据模型
+  3. View:视图，用于将模型组装到界面中
+  
+- 前端MVC模式的困难
+
+
+#### action
+
+1. action是一个plain-object(平面对象)，平面对象的__proto__指向Object.prototype,可以将action理解成一个对象字面量{}
+2. **action中必须有type属性，用于描述操作的类型，type类型可以是任意类型(string、number等等)**
+3. 通常使用payload属性作为附加数据，可以为任何类型
+4. 大型项目中，由于操作类型非常多，为了避免硬编码(写死的对象、字符串等等)，会将action的类型存放到一个或一些单独的文件中
+5. 为了方便创建action，通常会使用action创建函数(action creator)来创建action
+   > 凡是一个函数返回action就是action创建函数，且action创建函数应为无副作用的纯函数
+
+    纯函数：
+     1. 不能以任何形式改变参数 
+     2. 函数内部不能有异步 
+     3. 不可以对外部环境中的数据造成影响(不可本地存储、不可改变函数外部变量)
+6. 为了方便action创建函数分发action，redux提供了一个函数```bindActionCreators```,该函数用于增强action创建函数功能，使用它不仅可以创建action，还可以创建后自动完成分发
+   ```js
+    import {createStore,bindActionCreators} from 'redux';
+    import {getIncreaseAction,getDecreaseAction,getSetAction} from './action/number-action'
+    import {reducer} from './reducer'
+   let store=createStore(reducer,10);//返回一个仓库对象------------>第三步，仓库对象将分发的action、旧数据传递给对应的reducer函数
+
+     传统模式 第一种分发action  
+    let action=getIncreaseAction()//创建一个action    ----------------->第一步
+
+    store.dispatch(action)//分发一个action ------------>第二步
+
+
+   -------------------------------------------------------------
+
+
+    这是第二种方法分发action
+    let bindActinos=bindActionCreators({getIncreaseAction,getDecreaseAction,getSetAction},store.dispatch)
+    //第一个参数是由action创建函数合并的对象，第二个参数是仓库的dispatch函数，返回一个新对象，新对象中的属性名与第一个参数的属性名一致
+    bindActinos.getDecreaseAction()//直接调用对应的action创建函数就可以分发action
+
+   
+   ```
+
+### reducer
+
+reducer是用于改变数据的函数
+
+1. 一个数据仓库，有且仅有一个reducer,并且通常情况下，一个工程项目只有一个仓库
+2. 为了方便管理，通常将reducer放到单独的文件中
+3. reducer被调用的时间点
+   1. 当创建一个store时```createStore(reducer,默认状态)```会调用reducer
+      1. 利用这一点，用reducer初始化状态，创建仓库时不传递任何状态，将reducer函数的参数state设置一个默认值
+   2. 通过store.dispatch分发了一个action，此时会调用reducer
+4. reducer函数内部通常用switch来判断type值(书写习惯)
+5. **reducer必须是一个没有副作用的纯函数**
+   - 作用：
+     1. 纯函数有利于测试和调试
+     2. 有利于还原数据
+     3. 有利于将来和react结合使用
+   - 要求
+     1. 不能改变参数、参数内属性(可以使用结构、object.assign({},对象1，对象2))，因此改变状态必须得到新的状态
+     2. 不能有异步(ajax、setTimeout、promise)
+     3. 不能对外部环境造成影响(不能使用本地存储)
+6. 由于在大中型项目中，操作比较复杂，数据结构与比较复杂，因此会对reducer进行细分
+    1. redux提供了一个方法使我们更加方便的合并reducer，```combineReducers```用法：combineReducers({
+        属性：不同的reducer模块
+        属性：不同的reducer模块
+        属性：不同的reducer模块
+      })
+      作用：**合并reducer，得到一个新的reducer，该新的reducer管理一个对象，该对象中的每一个属性交给对应的reducer管理**
+```js
+  import {DECREASE,INCREASE,SET} from './action/action-type'
+
+  /**
+   * reducer本质是一个普通函数
+   * @param state 之前仓库中的（状态）数据
+   * @param action 描述要做什么的对象
+   */
+  export function reducer(state=10,action) {//返回一个新的数据
+      state设置默认值可以在创建store时运行reducer时设置默认数据，
+      由于第一次运行render时action的type是随机的，所以我们自己写的判断进不去，最终返回state的默认值
+
+      if(action.type===DECREASE){
+          return state-1;
+      }else if(action.type===INCREASE){
+          return state+1;
+      }else if(action.type===SET){
+          return state.payload
+      }
+      return state;//如果什么不做返回之前数据即可     -------------->第四步，reducer将新状态再传递给store仓库对象
+  }
+
+```
+
+
+### store
+store：用于保存数据的仓库。通过createStore方法创建的对象。
+
+```js
+    let store=createStore(reducer);
+    store.dispatch(action)来分发action
+    store.getState()来获取当前仓库中保存的数据
+    store.subscribe(()=>{})注册一个监听器，监听器是一个无参函数，当分发一个action之后，会运行注册的监听器。监听器会返回一个函数用于取消监听。可以在监听器里面输出每次分发完action后的仓库数据，以便查看。
+
+
+```
+
+## redux中间件
+```js
+使用中间件写法
+import {createStore,applyMiddleware} from 'redux'
+import logger from 'redux-logger'
+import thunk from 'redux-thunk'
+
+
+let store=createStore(reducer,
+  applyMiddleware(thunk,logger)
+)
+```
+
+redux-logger：用来在控制台调试方便开发者查看仓库数据的变化
+redux-thunk：用来处理异步的action，即可以在action创建函数中书写异步代码。action处理函数返回的不是个对象了，而是一个函数，该函数可以是异步的。
+    redux-thunk会向action函数中传递三个参数：
+    1. dispatch：来自于store.dispatch
+    2. getState：来自于store.getState
+    3. extra:来自于用户设置的额外参数

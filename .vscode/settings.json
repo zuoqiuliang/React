@@ -1,3 +1,8 @@
 {
-    "workbench.editorAssociations": []
+    "workbench.editorAssociations": [
+        {
+            "viewType": "vscode.markdown.preview.editor",
+            "filenamePattern": "*.md"
+        }
+    ]
 }
