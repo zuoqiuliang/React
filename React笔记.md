@@ -1290,8 +1290,10 @@ MVC模式：
 
 
     这是第二种方法分发action
+
+    //bindActionCreators第一个参数是由action创建函数合并的对象，第二个参数是仓库的dispatch函数；bindActionCreators返回一个新对象，新对象中的属性名与第一个参数的属性名一致
     let bindActinos=bindActionCreators({getIncreaseAction,getDecreaseAction,getSetAction},store.dispatch)
-    //第一个参数是由action创建函数合并的对象，第二个参数是仓库的dispatch函数，返回一个新对象，新对象中的属性名与第一个参数的属性名一致
+    
     bindActinos.getDecreaseAction()//直接调用对应的action创建函数就可以分发action
 
    
@@ -1380,3 +1382,225 @@ redux-thunk：用来处理异步的action，即可以在action创建函数中书
     1. dispatch：来自于store.dispatch
     2. getState：来自于store.getState
     3. extra:来自于用户设置的额外参数
+
+
+## react-redux
+
+- 如果一个组件仅用于渲染一个UI界面，而没有自己的状态，通常是函数组件，这样的组件叫 **展示组件**
+- 如果一个组件，仅用于提供数据，只渲染其他组件，而没有任何属于自己的UI界面，这样的组件叫做**容器组件**
+
+react-redux库:用来连接react和redux，包含几个组件：
+- Provider组件：没有任何UI界面，该组件作用是将redux仓库放到一个上下文中
+- connect：这是一个方法，返回一个高阶组件，用于连接仓库和组件的
+  1. 参数1：函数，第一个参数是store的状态数据；第二个参数是外部传递给容器组件的属性，该函数返回一个对象，函数返回的对象依次展开传递给展示组件的属性，是展示组件需要的数据
+  2. 参数2：
+    情况1：参数是函数，展示组件需要调用的事件函数，事件函数返回的对象依次展开传递给展示组件的属性，第一个参数是dispatch；第二个参数是外部传递给容器组件的属性
+    情况2：参数是对象，对象的每个属性是个action创建函数，当事件触发时，会自动的dispatch函数返回的action
+  - connect()调用后返回一个高阶组件，高阶组件也是个函数，传入展示组件返回容器组件
+
+``` js
+connect(展示组件需要的数据，展示组件需要的事件)(展示组件)
+
+这样会返回容器组件
+```
+  connect使用的细节：
+  1. 如果对返回的容器组件加上额外的属性，则这些属性会直接传递到展示组件
+  2. 如果不传递第二个组件，通过connect连接的组件会自动得到一个属性dispatch，使得组件有能力自行调用dispatch触发action(不推荐这样做，拒绝组件和仓库数据耦合)
+   
+
+## connected-react-router(redux和router结合)
+
+> 课前知识：
+     1. 安装谷歌插件：redux-devtools
+     2. 使用npm安装第三方库： redux-devtools-extension
+
+用于将redux和react-router进行联合
+会将下面两个路由数据和仓库同步：
+1. action：这个不是redux中的action,在connected-react-router中代表当前路由跳转的方式(PUSH、REPLACE、POP)
+2. location:记录了当前的地址信息
+
+**connected-react-router中的内容：**
+1. **connectRouter**:这是一个函数，需要一个参数，是history对象，调用它返回一个管理仓库中路由信息的reducer，因此一般我们在reducer的文件中：
+
+在仓库中使用history需要导入第三方库```history```，使用里面的createBrowserHistory,调用该方法得到history对象，createBrowserHistory()
+  ```js
+    combineReducers({
+      属性：不同的reducer模块,
+      属性：不同的reducer模块,
+      属性：不同的reducer模块,
+      router:connectRouter(createBrowserHistory()),//在仓库中添加路由的仓库状态
+    })
+  ```
+2. **routerMiddleware**:一个函数，参数是和connectRouter参数相同的history，该函数会返回一个中间件，用于拦截特殊的action
+3. **ConnectedRouter**：一个组件，有一个属性是和connectRouter参数相同的history，用于向上下文提供一个history对象和其他路由信息一致，**之所以制作一个新的组件，是因为connected-react-router这个库必须保证react项目整个过程使用的同一个history对象**
+   > 要求react不可以使用react-router-dom中的Router组件，要使用ConnectedRouter组件，因为react-router-dom中的Router组件中的history和createBrowserHistory创建的不是一个history，不能达到路由和仓库同步
+
+
+## dva
+官方网站：https://dvajs.com；阿里巴巴出品的库
+dva不仅仅是一个第三方库，更是一个框架，它主要整合了redux相关数据，让我们处理数据更加容易。dva依赖了很多东西：react、react-router、redux、redux-saga、react-redux、connected-react-router等
+**由于dva内部使用了react-redux、connected-react-router，所以我们的组件和仓库关联、路由和仓库关联**
+
+
+
+- dva的使用：
+1. dva默认导出一个函数，调用该函数可以得到一个dva对象
+2. dva对象.router：一个路由方法，传入一个函数，该函数返回一个react节点，将来应用程序启动后会自动应用该节点
+3. dva对象.start：一个方法，该方法用于启动dva应用程序，可以认为启动的就是react程序，该方法传入一个选择器，用于选中页面中的某个dom元素，react会将内容渲染到该元素内部
+4. dva对象.model：一个方法，该方法用于定义一个模型，该模型可以理解为redux的action、reducer、redux-saga副作用处理的整合，整合成了一个对象，将该对象传入model方法即可。
+   整合对象中的属性：
+   1. namespace:命名空间，该属性是一个字符串，字符串的值会被作为仓库中的属性保存
+   2. state: 该模型的默认状态
+   3. reducers：该属性配置为一个对象，对象中的每个方法就是一个reducer，dva规定，reducer的名字就是reducer匹配的action类型
+   4. effects:处理副作用(如ajax请求)，底层使用redux-saga实现的，该属性配置为一个对象，对象中的每个方法均处理一个副作用，方法的名字就是匹配的action类型
+      1. 函数的参数1：action
+      2. 函数的参数2：封装好的saga/effects对象
+   5. subscriptions:该属性配置为一个对象，该对象中可以写任意数量、任意名称的属性，每个属性是一个函数，这些函数会在模型加入到仓库中后立即运行，可以在这些函数中注册事件。
+      1. 函数的参数1：dispatch
+      2. 函数的参数2：history对象
+![avatar](https://zos.alipayobjects.com/rmsportal/PPrerEAKbIoDZYr.png)
+
+5. dva中同步路由到仓库
+
+    > dva已经做了connected-react-router中的connectRouter和routerMiddleware这两步，只有一个history等待我们传递，所以以下配置：
+   1. 在调用dva函数时，导入```history```，使用里面的createBrowserHistory,调用createBrowserHistory()得到history对象
+   2. 在根函数中，使用ConnectedRouter作为根组件，用于向上下文提供一个history对象和其他路由信息一致
+
+6. dva配置：
+   1. history:同步到仓库的history对象
+   2. initialState:创建redux仓库时，使用的默认状态
+   3. onError:当仓库的运行发生错误的时候，运行的函数
+   4. onAction:配置中间件
+      1. 传入一个中间件对象
+      2. 传入一个中间件数组
+   5. onStateChange：当仓库中状态发生变化时运行的函数
+   6. extraReducers:指定额外的 reducer,是一个对象，对象中每个属性是一个方法，每个方法是需要合并的reducer，方法名即仓库对应的属性名
+   7. extraEnhancers：配置一个数组，数组每一项是个函数，用于封装createStore函数的，dva会将原来的仓库创建函数作为参数传递，返回一个新的用于创建仓库的函数
+
+
+
+```js
+  import dva from 'dva'
+  import {createBrowserHistory} from 'history'
+
+  const app = dva({
+    history:createBrowserHistory(),
+    initialState:{
+      模型1默认状态：123，
+      模型2默认状态：234
+    },
+    onError(e,dispatch) {
+      message.error(e.message,dispatch);
+    },
+    onAction(){
+
+    },
+    extraReducers: {
+      abc(state=123,action){
+
+      }
+    },
+    extraEnhancers:[function (createStore){
+      return function(...args){
+        return createStore(...args)
+      }
+    }]
+  });
+
+```
+### dva插件
+通过dva对象.use(插件)，来使用插件，插件本质就是一个对象，该对象与配置对象相同，dva会在启动时，将传递的插件对象混合到配置中
+
+**第三方插件：**
+- dva-loading:该插件会在仓库中加入一个loading状态，是一个对象。有以下属性：
+  1. global：全局是否正在处理副作用，只要有任何一个模块在处理副作用，该属性为true
+  2. models:一个对象，对象中的属性名以及属性值代表哪个模型是否在处理副作用中
+  3. effects：一个对象，对象中的属性名以及属性值代表哪个action是否触发了副作用
+
+```js
+  import createLoading from dva-loading
+  const app = dva({
+    history:createBrowserHistory(),
+  })
+
+
+  app.use(createLoading({
+    namespaced:'Load'
+  }))
+  配置在仓库中的名字，默认是loading
+```
+
+
+## umijs
+
+官网：https://umijs.org/
+
+### 全局安装umi
+  ``` yarn global add umi```
+  全局安装后会有一个命令行工具-umi，通过该命令可以对umi工程进行操作
+   umi还可以使用脚手架
+命令行：
+umi dev：使用开发模式启动命令行
+
+### 约定式路由
+umi对路由的处理主要有两种：
+
+1. **约定式**：使用约定好的文件夹和文件，来代表页面，umi会根据开发者书写的页面生成路由配置
+
+  > 路由匹配约定
+  1. umi约定，工程中的pages文件夹下存放的是页面，如果工程包含src目录，则src/pages是页面文件夹
+  2. umi约定，页面的文件名，以及页面的文件路径，是该页面匹配的路由
+  3. umi约定，如果页面的文件名是index，则可以省略文件名(首页)，注意避免文件名和当前目录下文件夹名称相同
+  4. umi约定，如果src/layouts目录存在，则该目录中的index.js表示的全局通用布局，布局中的children则会添加具体的页面
+  5. umi约定，如果pages文件夹下包含_layout.js，则_layout.js所在的目录以及其所有的子目录中的页面，公用这个页面
+  6. 404页面，umi约定，pages/404.js表示404页面，如果路由无匹配，则会渲染该页面
+  7. 约定 [ ] 包裹的文件或文件夹为动态路由。
+    ```src/pages/users/[id].js 会成为 /users/:id```
+  8. 约定 [ $] 包裹的文件或文件夹为动态可选路由,即/users后写不写内容都会匹配到这个文件
+    ```src/pages/users/[id$].js 会成为 /users/:id?```
+
+  > 路由跳转约定
+  1. 链接跳转：Link：导入Link组件即可；NavLink ：导入NavLink组件即可，用法和react-router-dom中路由一样
+  2. 代码跳转：导入history对象，```import { history } from 'umi';```或者在组件属性中获取history
+  > 路由信息的获取
+  所有的**页面组件、布局组件**(pages、layouts文件夹下的文件)都会通过属性props，收到下面属性：
+  1. match：等同于react-router中的match
+  2. history:等同于react-router中的history（history.location.query被封装成了一个对象，使用的query-string库进行的封装）
+  3. location:等同于react-router中的location(location.query被封装成了一个对象，使用的query-string库进行的封装)
+  4. route:当前路由配置，包含 path、exact、component、routes 等
+  - 如果需要在普通组件中获取路由信息，则需要使用withRouter封装，```import { withRouter } from 'umi'```导入即可
+
+2. **配置式**：直接书写路由配置文件
+   当使用了路由配置后，约定式路由失效
+   两种方式书写umi配置：
+   1. 使用根目录下的文件 ```.umirc.js```
+   2. 使用根目录下的文件 ```config/config.js```
+  进行路由匹配时，每个配置就是一个匹配规则，并且，每个配置是一个对象，对象中的某些属性会直接形成Route组件的属性
+
+  注意：
+
+  - component配置项，需要填写页面组件的路径，路径相对于src/pages文件夹
+  - exact配置项：如果我们没有手动写exact则生成的路由配置自动添加exact:true
+  - 每一个路由配置可以添加任何属性
+  - Routes属性是一个数组，数组中每一项是一个组件路径，路径相对于项目根目录，当匹配到路由后，会转而渲染该属性指定的组件，并将component对应的组件作为children放到匹配的组件中
+
+路由配置中的信息，同样可以写到约定式路由中，方式是，为约定式路由添加第一个文档注释（YAML），需要将注释放到最开始位置
+
+  YAML格式:
+  - 键值对：冒号后需要加上空格(不需要加任何双引号)
+  - 如果某个属性有多个键或多个值，需要进行缩进(空格)
+  
+### umi使用dva插件
+> 文档：https://umijs.org/zh-CN/plugins/plugin-dva
+
+dva插件和umi整合后，将模型分为两种：
+1. 全局模型：所有页面通用，工程一开始启动后，模型就会挂载到仓库
+2. 局部模型：只能被某些页面使用，访问具体的页面时才会挂载到仓库
+
+**定义全局模型**
+在```src/models```目录定义的js文件都会被看作是全局模型，默认情况下，全局的命名空间和文件名一致
+
+**定义局部模型**
+局部模型定义在pages文件夹或其子文件夹下，在哪个文件夹定义的模型，会被该文件夹中所有页面及子页面所共享。
+
+局部模型的定义和全局模型的定义类似，需要创建一个models文件夹
